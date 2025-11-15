@@ -1,17 +1,20 @@
 import { useEffect, useRef } from 'react';
 
 interface AvatarPlayerProps {
-  sessionId: string;
-  websocketUrl?: string;
-  webrtcUrl?: string;
+  session: {
+    session_id: string;
+    websocket_url?: string;
+    webrtc_url?: string;
+  };
+  isConnected: boolean;
 }
 
-export const AvatarPlayer = ({ sessionId, websocketUrl, webrtcUrl }: AvatarPlayerProps) => {
+export const AvatarPlayer = ({ session, isConnected }: AvatarPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
 
   useEffect(() => {
-    if (webrtcUrl && videoRef.current) {
+    if (session.webrtc_url && videoRef.current) {
       setupWebRTC();
     }
 
@@ -20,10 +23,10 @@ export const AvatarPlayer = ({ sessionId, websocketUrl, webrtcUrl }: AvatarPlaye
         pcRef.current.close();
       }
     };
-  }, [webrtcUrl]);
+  }, [session.webrtc_url]);
 
   const setupWebRTC = async () => {
-    if (!webrtcUrl || !videoRef.current) return;
+    if (!session.webrtc_url || !videoRef.current) return;
 
     try {
       console.log('Setting up WebRTC connection...');
@@ -72,7 +75,8 @@ export const AvatarPlayer = ({ sessionId, websocketUrl, webrtcUrl }: AvatarPlaye
       {/* Session ID overlay */}
       <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-black/70 backdrop-blur-sm rounded-md">
         <p className="text-xs text-muted-foreground font-mono">
-          Session: {sessionId.slice(0, 8)}...
+          Session: {session.session_id.slice(0, 8)}...
+          {isConnected && <span className="ml-2 text-green-400">● Live</span>}
         </p>
       </div>
     </div>

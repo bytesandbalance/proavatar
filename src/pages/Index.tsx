@@ -1,18 +1,19 @@
-import { Button } from "@/components/ui/button";
-import { useLiveAvatar } from "@/hooks/useLiveAvatar";
-import { AvatarPlayer } from "@/components/AvatarPlayer";
-import { CountdownTimer } from "@/components/CountdownTimer";
-import { Loader2, Power, Play } from "lucide-react";
+import { useLiveAvatar } from '@/hooks/useLiveAvatar';
+import { AvatarPlayer } from '@/components/AvatarPlayer';
+import { AvatarSelector } from '@/components/AvatarSelector';
+import { CountdownTimer } from '@/components/CountdownTimer';
+import { Button } from '@/components/ui/button';
+import { Power } from 'lucide-react';
 
 const Index = () => {
-  const {
-    session,
-    isConnecting,
+  const { 
+    session, 
+    isConnecting, 
     isConnected,
     timeRemaining,
     formattedTime,
     startSession,
-    endSession,
+    endSession 
   } = useLiveAvatar();
 
   return (
@@ -40,55 +41,18 @@ const Index = () => {
         {/* Main Content */}
         <div className="flex-1 flex items-center justify-center">
           {!session ? (
-            /* Pre-session state */
-            <div className="text-center space-y-8 animate-fade-in">
-              <div className="space-y-4">
-                <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                  <Play className="w-10 h-10 text-primary" />
-                </div>
-                <h2 className="text-2xl font-semibold">Start Your Avatar Session</h2>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Sessions are automatically optimized for instant loading and will terminate after 10 minutes
-                </p>
-              </div>
-              
-              <Button
-                onClick={startSession}
-                disabled={isConnecting}
-                size="lg"
-                className="px-8 py-6 text-lg"
-              >
-                {isConnecting ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-5 w-5" />
-                    Start Session
-                  </>
-                )}
-              </Button>
-            </div>
+            <AvatarSelector 
+              onStart={startSession}
+              isConnecting={isConnecting}
+            />
           ) : (
             /* Active session */
             <div className="w-full h-full max-w-6xl mx-auto flex flex-col gap-6 animate-fade-in">
               {/* Avatar Player */}
               <div className="flex-1 relative">
-                {!isConnected && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg z-10">
-                    <div className="text-center space-y-4">
-                      <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-                      <p className="text-muted-foreground">Establishing connection...</p>
-                    </div>
-                  </div>
-                )}
-                
                 <AvatarPlayer
-                  sessionId={session.session_id}
-                  websocketUrl={session.websocket_url}
-                  webrtcUrl={session.webrtc_url}
+                  session={session}
+                  isConnected={isConnected}
                 />
               </div>
 

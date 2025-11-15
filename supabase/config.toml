@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.liveavatar-terminate]
 verify_jwt = false
+
+[functions.liveavatar-list-resources]
+verify_jwt = false

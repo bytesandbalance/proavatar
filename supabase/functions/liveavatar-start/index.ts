@@ -16,7 +16,17 @@ serve(async (req) => {
       throw new Error('LIVEAVATAR_API_KEY is not configured');
     }
 
-    console.log('Creating LiveAvatar session token...');
+    const { avatar_id, voice_id, context_id } = await req.json();
+    
+    if (!avatar_id) {
+      throw new Error('avatar_id is required. Please provide a valid avatar_id from your LiveAvatar account.');
+    }
+    
+    if (!voice_id) {
+      throw new Error('voice_id is required. Please provide a valid voice_id from your LiveAvatar account.');
+    }
+
+    console.log('Creating LiveAvatar session token with avatar:', avatar_id, 'voice:', voice_id);
 
     // Step 1: Create session token
     const tokenResponse = await fetch('https://api.liveavatar.com/v1/sessions/token', {
@@ -28,9 +38,10 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         mode: 'FULL',
-        avatar_id: 'default', // You can customize this
+        avatar_id: avatar_id,
         avatar_persona: {
-          voice_id: 'default',
+          voice_id: voice_id,
+          ...(context_id && { context_id: context_id }),
           language: 'en',
         },
       }),

@@ -34,13 +34,19 @@ export const useLiveAvatar = () => {
     return () => clearInterval(interval);
   }, [session]);
 
-  const startSession = async () => {
+  const startSession = async (avatarId: string, voiceId: string, contextId?: string) => {
     setIsConnecting(true);
     
     try {
-      console.log('Starting LiveAvatar session...');
+      console.log('Starting LiveAvatar session with avatar:', avatarId, 'voice:', voiceId);
       
-      const { data, error } = await supabase.functions.invoke('liveavatar-start');
+      const { data, error } = await supabase.functions.invoke('liveavatar-start', {
+        body: { 
+          avatar_id: avatarId,
+          voice_id: voiceId,
+          ...(contextId && { context_id: contextId })
+        }
+      });
       
       if (error) throw error;
       
