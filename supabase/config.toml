@@ -1,1 +1,7 @@
 project_id = "cqafqwcdhmydkqobznrf"
+
+[functions.liveavatar-start]
+verify_jwt = false
+
+[functions.liveavatar-terminate]
+verify_jwt = false
