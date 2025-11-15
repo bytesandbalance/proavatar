@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface LiveAvatarSession {
   session_id: string;
+  session_token: string;
   websocket_url?: string;
   webrtc_url?: string;
   terminate_at: number;
@@ -109,7 +110,7 @@ export const useLiveAvatar = () => {
       console.log('Ending session manually...');
       
       await supabase.functions.invoke('liveavatar-terminate', {
-        body: { session_id: session.session_id }
+        body: { session_token: session.session_token }
       });
       
       handleSessionEnd();

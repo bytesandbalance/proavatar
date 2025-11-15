@@ -16,53 +16,82 @@ serve(async (req) => {
       throw new Error('LIVEAVATAR_API_KEY is not configured');
     }
 
-    console.log('Creating LiveAvatar session...');
+    console.log('Creating LiveAvatar session token...');
 
-    // Create session with LiveAvatar API
-    const response = await fetch('https://api.liveavatar.com/v1/sessions', {
+    // Step 1: Create session token
+    const tokenResponse = await fetch('https://api.liveavatar.com/v1/sessions/token', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LIVEAVATAR_API_KEY}`,
+        'X-API-KEY': LIVEAVATAR_API_KEY,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify({
+        mode: 'FULL',
         avatar_id: 'default', // You can customize this
-        voice_id: 'default',
+        avatar_persona: {
+          voice_id: 'default',
+          language: 'en',
+        },
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('LiveAvatar API error:', response.status, errorText);
-      throw new Error(`LiveAvatar API error: ${response.status}`);
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('LiveAvatar token API error:', tokenResponse.status, errorText);
+      throw new Error(`LiveAvatar token API error: ${tokenResponse.status}`);
     }
 
-    const sessionData = await response.json();
-    console.log('Session created:', sessionData.session_id);
+    const tokenData = await tokenResponse.json();
+    const { session_id, session_token } = tokenData.data;
+    console.log('Session token created:', session_id);
+
+    // Step 2: Start the session
+    console.log('Starting LiveAvatar session...');
+    const startResponse = await fetch('https://api.liveavatar.com/v1/sessions/start', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session_token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!startResponse.ok) {
+      const errorText = await startResponse.text();
+      console.error('LiveAvatar start API error:', startResponse.status, errorText);
+      throw new Error(`LiveAvatar start API error: ${startResponse.status}`);
+    }
+
+    const sessionData = await startResponse.json();
+    console.log('Session started successfully');
 
     // Schedule auto-termination after 10 minutes
-    const sessionId = sessionData.session_id;
     const terminateAt = Date.now() + (10 * 60 * 1000); // 10 minutes
 
     // Schedule background task to terminate session after 10 minutes
     setTimeout(async () => {
-      console.log(`Auto-terminating session ${sessionId}`);
+      console.log(`Auto-terminating session ${session_id}`);
       try {
-        await fetch(`https://api.liveavatar.com/v1/sessions/${sessionId}`, {
-          method: 'DELETE',
+        await fetch('https://api.liveavatar.com/v1/sessions/stop', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${LIVEAVATAR_API_KEY}`,
+            'Authorization': `Bearer ${session_token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
         });
-        console.log(`Session ${sessionId} terminated successfully`);
+        console.log(`Session ${session_id} terminated successfully`);
       } catch (error) {
-        console.error(`Failed to terminate session ${sessionId}:`, error);
+        console.error(`Failed to terminate session ${session_id}:`, error);
       }
     }, 10 * 60 * 1000);
 
     return new Response(
       JSON.stringify({
-        ...sessionData,
+        session_id: session_id,
+        session_token: session_token,
+        ...sessionData.data,
         terminate_at: terminateAt,
       }),
       {
