@@ -16,17 +16,19 @@ serve(async (req) => {
       throw new Error('LIVEAVATAR_API_KEY is not configured');
     }
 
-    const { session_id } = await req.json();
-    if (!session_id) {
-      throw new Error('session_id is required');
+    const { session_token } = await req.json();
+    if (!session_token) {
+      throw new Error('session_token is required');
     }
 
-    console.log('Terminating session:', session_id);
+    console.log('Stopping session...');
 
-    const response = await fetch(`https://api.liveavatar.com/v1/sessions/${session_id}`, {
-      method: 'DELETE',
+    const response = await fetch('https://api.liveavatar.com/v1/sessions/stop', {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LIVEAVATAR_API_KEY}`,
+        'Authorization': `Bearer ${session_token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
     });
 
