@@ -53,16 +53,16 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
   };
 
   const handleStart = () => {
-    if (!avatarId || !voiceId) {
+    if (!avatarId || !voiceId || !contextId) {
       toast({
         title: "Missing Information",
-        description: "Please provide both Avatar ID and Voice ID",
+        description: "Please provide Avatar ID, Voice ID, and Context ID",
         variant: "destructive",
       });
       return;
     }
     
-    onStart(avatarId, voiceId, contextId || undefined);
+    onStart(avatarId, voiceId, contextId);
   };
 
   return (
@@ -97,7 +97,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="context-id">Context ID (optional)</Label>
+          <Label htmlFor="context-id">Context ID *</Label>
           <Input
             id="context-id"
             placeholder="e.g., context_def456"
