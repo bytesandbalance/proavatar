@@ -22,15 +22,11 @@ serve(async (req) => {
       throw new Error('avatar_id is required. Please provide a valid avatar_id from your LiveAvatar account.');
     }
     
-    if (!voice_id) {
-      throw new Error('voice_id is required. Please provide a valid voice_id from your LiveAvatar account.');
-    }
-    
     if (!context_id) {
       throw new Error('context_id is required for FULL mode. Please provide a valid context_id from your LiveAvatar account.');
     }
 
-    console.log('Creating LiveAvatar session token with avatar:', avatar_id, 'voice:', voice_id);
+    console.log('Creating LiveAvatar session token with avatar:', avatar_id, voice_id ? `voice: ${voice_id}` : '(no voice specified)');
 
     // Step 1: Create session token
     const tokenResponse = await fetch('https://api.liveavatar.com/v1/sessions/token', {
@@ -44,7 +40,7 @@ serve(async (req) => {
         mode: 'FULL',
         avatar_id,
         avatar_persona: {
-          voice_id,
+          ...(voice_id && { voice_id }),
           context_id,
           language: 'en',
         },
