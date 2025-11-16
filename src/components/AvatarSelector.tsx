@@ -53,16 +53,16 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
   };
 
   const handleStart = () => {
-    if (!avatarId || !voiceId || !contextId) {
+    if (!avatarId || !contextId) {
       toast({
         title: "Missing Information",
-        description: "Please provide Avatar ID, Voice ID, and Context ID",
+        description: "Please provide Avatar ID and Context ID",
         variant: "destructive",
       });
       return;
     }
     
-    onStart(avatarId, voiceId, contextId);
+    onStart(avatarId, voiceId || undefined, contextId);
   };
 
   return (
@@ -86,10 +86,10 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="voice-id">Voice ID *</Label>
+          <Label htmlFor="voice-id">Voice ID (optional)</Label>
           <Input
             id="voice-id"
-            placeholder="e.g., voice_xyz789"
+            placeholder="e.g., voice_xyz789 (leave empty for default)"
             value={voiceId}
             onChange={(e) => setVoiceId(e.target.value)}
             disabled={isConnecting}
@@ -120,7 +120,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
           
           <Button
             onClick={handleStart}
-            disabled={isConnecting || !avatarId || !voiceId}
+            disabled={isConnecting || !avatarId || !contextId}
             className="flex-1"
           >
             {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
