@@ -63,7 +63,7 @@ export const useLiveAvatar = () => {
       
       toast({
         title: "Session Started",
-        description: "Your LiveAvatar session is ready",
+        description: "Your ProAvatar session is ready",
       });
     } catch (error) {
       console.error('Failed to start session:', error);
@@ -96,7 +96,7 @@ export const useLiveAvatar = () => {
       console.error('WebSocket error:', error);
       toast({
         title: "Connection Error",
-        description: "Failed to connect to LiveAvatar",
+        description: "Failed to connect to ProAvatar",
         variant: "destructive",
       });
     };

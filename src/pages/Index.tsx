@@ -23,7 +23,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent">
-              LiveAvatar
+              ProAvatar
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Real-time AI Avatar Sessions
