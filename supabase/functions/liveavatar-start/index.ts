@@ -25,6 +25,10 @@ serve(async (req) => {
     if (!voice_id) {
       throw new Error('voice_id is required. Please provide a valid voice_id from your LiveAvatar account.');
     }
+    
+    if (!context_id) {
+      throw new Error('context_id is required for FULL mode. Please provide a valid context_id from your LiveAvatar account.');
+    }
 
     console.log('Creating LiveAvatar session token with avatar:', avatar_id, 'voice:', voice_id);
 
@@ -36,25 +40,15 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(
-        context_id
-          ? {
-              mode: 'FULL',
-              avatar_id,
-              avatar_persona: {
-                voice_id,
-                context_id,
-                language: 'en',
-              },
-            }
-          : {
-              avatar_id,
-              avatar_persona: {
-                voice_id,
-                language: 'en',
-              },
-            }
-      ),
+      body: JSON.stringify({
+        mode: 'FULL',
+        avatar_id,
+        avatar_persona: {
+          voice_id,
+          context_id,
+          language: 'en',
+        },
+      }),
     });
 
     if (!tokenResponse.ok) {
@@ -69,7 +63,7 @@ serve(async (req) => {
 
     // Step 2: Start the session
     console.log('Starting LiveAvatar session...');
-    const startResponse = await fetch('https://api.liveavatar.com/v1/sessions/start', {
+    const startResponse = await fetch('https://api.liveavatar.com/v1/sessions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${session_token}`,
