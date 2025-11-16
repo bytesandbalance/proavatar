@@ -36,15 +36,25 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        mode: 'FULL',
-        avatar_id: avatar_id,
-        avatar_persona: {
-          voice_id: voice_id,
-          ...(context_id && { context_id: context_id }),
-          language: 'en',
-        },
-      }),
+      body: JSON.stringify(
+        context_id
+          ? {
+              mode: 'FULL',
+              avatar_id,
+              avatar_persona: {
+                voice_id,
+                context_id,
+                language: 'en',
+              },
+            }
+          : {
+              avatar_id,
+              avatar_persona: {
+                voice_id,
+                language: 'en',
+              },
+            }
+      ),
     });
 
     if (!tokenResponse.ok) {
