@@ -54,7 +54,7 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error('LiveAvatar token API error:', tokenResponse.status, errorText);
-      throw new Error(`LiveAvatar token API error: ${tokenResponse.status}`);
+      throw new Error(`Failed to create session token (${tokenResponse.status}): ${errorText}`);
     }
 
     const tokenData = await tokenResponse.json();
@@ -75,7 +75,21 @@ serve(async (req) => {
     if (!startResponse.ok) {
       const errorText = await startResponse.text();
       console.error('LiveAvatar start API error:', startResponse.status, errorText);
-      throw new Error(`LiveAvatar start API error: ${startResponse.status}`);
+      let errorMessage = `Failed to start session (${startResponse.status})`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.message) {
+          errorMessage = errorJson.message;
+        }
+        if (errorJson.data && Array.isArray(errorJson.data)) {
+          const details = errorJson.data.map((e: any) => `${e.loc?.join('.')}: ${e.message}`).join('; ');
+          errorMessage += ` - ${details}`;
+        }
+      } catch (e) {
+        // If parsing fails, use the raw error text
+        errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
     }
 
     const sessionData = await startResponse.json();
