@@ -63,7 +63,7 @@ serve(async (req) => {
 
     // Step 2: Start the session
     console.log('Starting LiveAvatar session...');
-    const startResponse = await fetch('https://api.liveavatar.com/v1/sessions', {
+    const startResponse = await fetch('https://api.liveavatar.com/v1/sessions/start', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${session_token}`,
