@@ -68,9 +68,9 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Configure LiveAvatar</CardTitle>
+        <CardTitle>Configure ProAvatar</CardTitle>
         <CardDescription>
-          Enter your avatar and voice IDs from your LiveAvatar dashboard
+          Enter your avatar and voice IDs from your ProAvatar dashboard
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -136,7 +136,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
             rel="noopener noreferrer"
             className="underline hover:text-foreground"
           >
-            LiveAvatar dashboard
+            ProAvatar dashboard
           </a>
         </p>
       </CardContent>
