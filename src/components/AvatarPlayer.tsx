@@ -10,12 +10,35 @@ interface AvatarPlayerProps {
     livekit_client_token?: string;
   };
   isConnected: boolean;
+  onSendMessage?: (message: string) => void;
 }
 
-export const AvatarPlayer = ({ session, isConnected }: AvatarPlayerProps) => {
+export const AvatarPlayer = ({ session, isConnected, onSendMessage }: AvatarPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const roomRef = useRef<Room | null>(null);
+
+  // Expose sendMessage via callback
+  useEffect(() => {
+    if (onSendMessage && roomRef.current) {
+      const sendMessage = async (text: string) => {
+        const room = roomRef.current;
+        if (!room) return;
+
+        const encoder = new TextEncoder();
+        const data = encoder.encode(JSON.stringify({
+          type: 'chat',
+          text: text
+        }));
+
+        await room.localParticipant?.publishData(data, { reliable: true });
+        console.log('Message sent via LiveKit:', text);
+      };
+
+      // Store the function reference
+      (window as any).__avatarSendMessage = sendMessage;
+    }
+  }, [onSendMessage, roomRef.current]);
 
   useEffect(() => {
     const hasLiveKit = !!session.livekit_url && !!session.livekit_client_token;

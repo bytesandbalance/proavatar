@@ -64,6 +64,7 @@ const Index = () => {
                 <AvatarPlayer
                   session={session}
                   isConnected={isConnected}
+                  onSendMessage={sendMessage}
                 />
               </div>
 
