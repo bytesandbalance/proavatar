@@ -3,7 +3,9 @@ import { AvatarPlayer } from '@/components/AvatarPlayer';
 import { AvatarSelector } from '@/components/AvatarSelector';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { Button } from '@/components/ui/button';
-import { Power } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Power, Send } from 'lucide-react';
+import { useState } from 'react';
 
 const Index = () => {
   const { 
@@ -13,8 +15,17 @@ const Index = () => {
     timeRemaining,
     formattedTime,
     startSession,
+    sendMessage,
     endSession 
   } = useLiveAvatar();
+
+  const [message, setMessage] = useState('');
+
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+    await sendMessage(message);
+    setMessage('');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95">
@@ -57,15 +68,27 @@ const Index = () => {
               </div>
 
               {/* Controls */}
-              <div className="flex justify-center">
+              <div className="flex gap-4 items-center">
+                <Input 
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Type your message to the avatar..."
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim()}
+                  size="lg"
+                >
+                  <Send className="h-5 w-5" />
+                </Button>
                 <Button
                   onClick={endSession}
                   variant="destructive"
                   size="lg"
-                  className="px-8"
                 >
-                  <Power className="mr-2 h-5 w-5" />
-                  End Session Now
+                  <Power className="h-5 w-5" />
                 </Button>
               </div>
             </div>

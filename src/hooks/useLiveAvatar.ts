@@ -112,6 +112,33 @@ export const useLiveAvatar = () => {
     wsRef.current = ws;
   };
 
+  const sendMessage = async (text: string) => {
+    if (!session) return;
+    
+    try {
+      console.log('Sending message to avatar:', text);
+      
+      await supabase.functions.invoke('liveavatar-send-message', {
+        body: { 
+          session_token: session.session_token,
+          text 
+        }
+      });
+      
+      toast({
+        title: "Message Sent",
+        description: "Avatar is processing your message",
+      });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message to avatar",
+        variant: "destructive",
+      });
+    }
+  };
+
   const endSession = async () => {
     if (!session) return;
     
@@ -162,6 +189,7 @@ export const useLiveAvatar = () => {
     timeRemaining,
     formattedTime: formatTime(timeRemaining),
     startSession,
+    sendMessage,
     endSession,
   };
 };
