@@ -118,17 +118,17 @@ export const useLiveAvatar = () => {
     try {
       console.log('Sending message to avatar:', text);
       
-      await supabase.functions.invoke('liveavatar-send-message', {
-        body: { 
-          session_token: session.session_token,
-          text 
-        }
-      });
-      
-      toast({
-        title: "Message Sent",
-        description: "Avatar is processing your message",
-      });
+      // Use the LiveKit data channel via the AvatarPlayer
+      if ((window as any).__avatarSendMessage) {
+        await (window as any).__avatarSendMessage(text);
+        
+        toast({
+          title: "Message Sent",
+          description: "Avatar is processing your message",
+        });
+      } else {
+        throw new Error('LiveKit connection not ready');
+      }
     } catch (error) {
       console.error('Failed to send message:', error);
       toast({
