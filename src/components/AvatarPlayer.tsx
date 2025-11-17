@@ -29,16 +29,17 @@ export const AvatarPlayer = ({ session, isConnected }: AvatarPlayerProps) => {
     if (!session.webrtc_url || !videoRef.current) return;
 
     try {
-      console.log('Setting up WebRTC connection...');
+      console.log('Setting up WebRTC connection to:', session.webrtc_url);
       
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       });
 
       pc.ontrack = (event) => {
-        console.log('Received remote track');
-        if (videoRef.current) {
+        console.log('Received remote track:', event.streams[0]);
+        if (videoRef.current && event.streams[0]) {
           videoRef.current.srcObject = event.streams[0];
+          console.log('Video stream connected');
         }
       };
 
@@ -48,14 +49,41 @@ export const AvatarPlayer = ({ session, isConnected }: AvatarPlayerProps) => {
         }
       };
 
+      pc.oniceconnectionstatechange = () => {
+        console.log('ICE connection state:', pc.iceConnectionState);
+      };
+
       pcRef.current = pc;
 
-      // Create offer and connect to LiveAvatar
-      const offer = await pc.createOffer();
+      // Create offer
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await pc.setLocalDescription(offer);
+      console.log('Created WebRTC offer');
 
-      // Send offer to LiveAvatar API (this would need the actual endpoint)
-      console.log('WebRTC offer created');
+      // Send offer to LiveAvatar and get answer
+      const response = await fetch(session.webrtc_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sdp: offer.sdp,
+          type: offer.type
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`WebRTC signaling failed: ${response.status}`);
+      }
+
+      const answer = await response.json();
+      console.log('Received WebRTC answer');
+
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      console.log('WebRTC connection established');
       
     } catch (error) {
       console.error('WebRTC setup error:', error);
