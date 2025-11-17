@@ -7,6 +7,9 @@ interface LiveAvatarSession {
   session_token: string;
   websocket_url?: string;
   webrtc_url?: string;
+  livekit_url?: string;
+  livekit_client_token?: string;
+  ws_url?: string;
   terminate_at: number;
 }
 
@@ -34,16 +37,16 @@ export const useLiveAvatar = () => {
     return () => clearInterval(interval);
   }, [session]);
 
-  const startSession = async (avatarId: string, voiceId: string, contextId?: string) => {
+  const startSession = async (avatarId: string, voiceId?: string, contextId?: string) => {
     setIsConnecting(true);
     
     try {
-      console.log('Starting LiveAvatar session with avatar:', avatarId, 'voice:', voiceId);
+      console.log('Starting LiveAvatar session with avatar:', avatarId, voiceId ? `voice: ${voiceId}` : '(no voice)');
       
       const { data, error } = await supabase.functions.invoke('liveavatar-start', {
         body: { 
           avatar_id: avatarId,
-          voice_id: voiceId,
+          ...(voiceId && { voice_id: voiceId }),
           ...(contextId && { context_id: contextId })
         }
       });
