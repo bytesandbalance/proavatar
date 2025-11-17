@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Room, RoomEvent, RemoteTrack, Track } from 'livekit-client';
+import { Room, RoomEvent, RemoteTrack, Track, createLocalAudioTrack, LocalAudioTrack } from 'livekit-client';
 
 interface AvatarPlayerProps {
   session: {
@@ -17,28 +17,14 @@ export const AvatarPlayer = ({ session, isConnected, onSendMessage }: AvatarPlay
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const roomRef = useRef<Room | null>(null);
+  const micTrackRef = useRef<LocalAudioTrack | null>(null);
 
-  // Expose sendMessage via callback
+  // Ensure cleanup of message bridge on unmount
   useEffect(() => {
-    if (onSendMessage && roomRef.current) {
-      const sendMessage = async (text: string) => {
-        const room = roomRef.current;
-        if (!room) return;
-
-        const encoder = new TextEncoder();
-        const data = encoder.encode(JSON.stringify({
-          type: 'chat',
-          text: text
-        }));
-
-        await room.localParticipant?.publishData(data, { reliable: true });
-        console.log('Message sent via LiveKit:', text);
-      };
-
-      // Store the function reference
-      (window as any).__avatarSendMessage = sendMessage;
-    }
-  }, [onSendMessage, roomRef.current]);
+    return () => {
+      delete (window as any).__avatarSendMessage;
+    };
+  }, []);
 
   useEffect(() => {
     const hasLiveKit = !!session.livekit_url && !!session.livekit_client_token;
@@ -51,7 +37,12 @@ export const AvatarPlayer = ({ session, isConnected, onSendMessage }: AvatarPlay
 
     return () => {
       if (pcRef.current) pcRef.current.close();
+      if (micTrackRef.current) {
+        try { micTrackRef.current.stop(); } catch (e) { console.warn('Error stopping mic track', e); }
+        micTrackRef.current = null;
+      }
       if (roomRef.current) roomRef.current.disconnect();
+      delete (window as any).__avatarSendMessage;
     };
   }, [session.livekit_url, session.livekit_client_token, session.webrtc_url]);
 
@@ -76,12 +67,57 @@ export const AvatarPlayer = ({ session, isConnected, onSendMessage }: AvatarPlay
         }
       });
 
+      room.on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
+        try {
+          const text = new TextDecoder().decode(payload);
+          console.log('LiveKit data received:', { text, from: participant?.identity, kind, topic });
+        } catch (e) {
+          console.log('LiveKit data received (binary)', { length: (payload as Uint8Array).byteLength, kind, topic });
+        }
+      });
+
       room.on(RoomEvent.Disconnected, () => {
         console.log('LiveKit disconnected');
       });
 
       await room.connect(session.livekit_url, session.livekit_client_token);
       console.log('LiveKit connected');
+
+      // Expose text sending over LiveKit DataChannel
+      const sendMessage = async (text: string) => {
+        if (!roomRef.current) return;
+        const encoder = new TextEncoder();
+
+        const payloads = [
+          JSON.stringify({ type: 'chat', text }),
+          JSON.stringify({ type: 'input_text', text }),
+          text,
+        ];
+
+        for (const [idx, p] of payloads.entries()) {
+          try {
+            await roomRef.current.localParticipant.publishData(encoder.encode(p), { reliable: true, topic: idx === 0 ? 'chat' : idx === 1 ? 'input_text' : 'text' });
+          } catch (e) {
+            console.warn('Failed to publish data payload', e);
+          }
+        }
+        console.log('Message sent via LiveKit:', text);
+      };
+      (window as any).__avatarSendMessage = sendMessage;
+
+      // Publish microphone audio so the avatar can hear you
+      try {
+        const audioTrack = await createLocalAudioTrack({
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        });
+        await room.localParticipant.publishTrack(audioTrack);
+        micTrackRef.current = audioTrack;
+        console.log('Microphone track published');
+      } catch (micError) {
+        console.warn('Microphone not published (permission denied or unavailable):', micError);
+      }
     } catch (error) {
       console.error('LiveKit connection error:', error);
     }
