@@ -14,7 +14,115 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      payments: {
+        Row: {
+          amount_eur: number
+          created_at: string | null
+          id: string
+          package_minutes: number
+          payment_reference: string
+          user_id: string
+        }
+        Insert: {
+          amount_eur: number
+          created_at?: string | null
+          id?: string
+          package_minutes: number
+          payment_reference: string
+          user_id: string
+        }
+        Update: {
+          amount_eur?: number
+          created_at?: string | null
+          id?: string
+          package_minutes?: number
+          payment_reference?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          credits_in_minutes: number
+          email: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_in_minutes?: number
+          email: string
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_in_minutes?: number
+          email?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          avatar_id: string | null
+          context_id: string | null
+          created_at: string | null
+          duration_minutes: number
+          end_time: string
+          id: string
+          session_token: string | null
+          start_time: string | null
+          status: string
+          user_id: string
+          voice_id: string | null
+        }
+        Insert: {
+          avatar_id?: string | null
+          context_id?: string | null
+          created_at?: string | null
+          duration_minutes: number
+          end_time: string
+          id?: string
+          session_token?: string | null
+          start_time?: string | null
+          status?: string
+          user_id: string
+          voice_id?: string | null
+        }
+        Update: {
+          avatar_id?: string | null
+          context_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number
+          end_time?: string
+          id?: string
+          session_token?: string | null
+          start_time?: string | null
+          status?: string
+          user_id?: string
+          voice_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
