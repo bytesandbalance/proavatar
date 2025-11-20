@@ -85,8 +85,8 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>LiveAvatar Portal</CardTitle>
-          <CardDescription>Sign in to access your paywalled LiveAvatar sessions</CardDescription>
+          <CardTitle>ProAvatar Portal</CardTitle>
+          <CardDescription>Sign in to access your paywalled ProAvatar sessions</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin">
@@ -94,7 +94,7 @@ export default function Auth() {
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
@@ -124,7 +124,7 @@ export default function Auth() {
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
