@@ -23,11 +23,11 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
     setIsLoadingResources(true);
     try {
       const { data, error } = await supabase.functions.invoke('liveavatar-list-resources');
-      
+
       if (error) throw error;
-      
+
       console.log('Available resources:', data);
-      
+
       // If we got avatars/voices, could auto-populate them here
       if (data.avatars?.data?.[0]) {
         setAvatarId(data.avatars.data[0].id || '');
@@ -35,7 +35,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
       if (data.voices?.data?.[0]) {
         setVoiceId(data.voices.data[0].id || '');
       }
-      
+
       toast({
         title: "Resources Loaded",
         description: "Check console for available avatars and voices",
@@ -61,7 +61,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
       });
       return;
     }
-    
+
     onStart(avatarId, voiceId || undefined, contextId);
   };
 
@@ -70,7 +70,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
       <CardHeader>
         <CardTitle>Configure ProAvatar</CardTitle>
         <CardDescription>
-          Enter your avatar and voice IDs from your ProAvatar dashboard
+          Enter your avatar and voice IDs from your LiveAvatar dashboard
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -84,7 +84,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
             disabled={isConnecting}
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="voice-id">Voice ID (optional)</Label>
           <Input
@@ -95,7 +95,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
             disabled={isConnecting}
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="context-id">Context ID *</Label>
           <Input
@@ -106,7 +106,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
             disabled={isConnecting}
           />
         </div>
-        
+
         <div className="flex gap-2">
           <Button
             onClick={loadResources}
@@ -117,7 +117,7 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
             {isLoadingResources && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Try Auto-Load
           </Button>
-          
+
           <Button
             onClick={handleStart}
             disabled={isConnecting || !avatarId || !contextId}
@@ -127,16 +127,16 @@ export const AvatarSelector = ({ onStart, isConnecting }: AvatarSelectorProps) =
             Start Session
           </Button>
         </div>
-        
+
         <p className="text-sm text-muted-foreground">
           Find your IDs in the{' '}
-          <a 
-            href="https://app.liveavatar.com" 
-            target="_blank" 
+          <a
+            href="https://app.liveavatar.com"
+            target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-foreground"
           >
-            ProAvatar dashboard
+            LiveAvatar dashboard
           </a>
         </p>
       </CardContent>
