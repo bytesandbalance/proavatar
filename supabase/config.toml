@@ -8,3 +8,18 @@ verify_jwt = false
 
 [functions.liveavatar-list-resources]
 verify_jwt = false
+
+[functions.payments-webhook]
+verify_jwt = false
+
+[functions.sessions-start]
+verify_jwt = true
+
+[functions.sessions-terminate]
+verify_jwt = true
+
+[functions.sessions-cleanup]
+verify_jwt = false
+
+[functions.user-profile]
+verify_jwt = true
