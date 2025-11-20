@@ -116,7 +116,7 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error('LiveAvatar token error:', tokenResponse.status, errorText);
-      
+
       // Refund credits on failure
       await supabase
         .from('profiles')
@@ -144,7 +144,7 @@ serve(async (req) => {
     if (!startResponse.ok) {
       const errorText = await startResponse.text();
       console.error('LiveAvatar start error:', startResponse.status, errorText);
-      
+
       // Refund credits on failure
       await supabase
         .from('profiles')
