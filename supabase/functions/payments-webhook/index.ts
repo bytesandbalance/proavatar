@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { user_id, package: packageMinutes, payment_reference, status } = await req.json();
+    const { user_id, package: packageMinutes, payment_reference, status, price_per_minute } = await req.json();
 
     console.log('Webhook received:', { user_id, packageMinutes, payment_reference, status });
 
@@ -28,9 +28,10 @@ serve(async (req) => {
       );
     }
 
-    if (![15, 30].includes(Number(packageMinutes))) {
+    const minutes = Number(packageMinutes);
+    if (!Number.isInteger(minutes) || minutes < 1) {
       return new Response(
-        JSON.stringify({ error: 'Invalid package. Must be 15 or 30 minutes' }),
+        JSON.stringify({ error: 'Invalid package. Minutes must be a positive integer' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -57,8 +58,20 @@ serve(async (req) => {
       );
     }
 
-    const minutes = Number(packageMinutes);
-    const amountEur = minutes * 1.5; // 1.5 EUR per minute
+    // Get price per minute from settings or use provided value
+    let pricePerMinute = price_per_minute ? Number(price_per_minute) : null;
+    
+    if (!pricePerMinute) {
+      const { data: setting } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'price_per_minute_eur')
+        .single();
+      
+      pricePerMinute = setting ? Number(setting.value) : 1.5; // Default fallback
+    }
+
+    const amountEur = minutes * pricePerMinute;
 
     // Start transaction: add credits and log payment
     const { data: profile, error: profileError } = await supabase

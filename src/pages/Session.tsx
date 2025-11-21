@@ -6,17 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Play, StopCircle } from 'lucide-react';
 import { AvatarPlayer } from '@/components/AvatarPlayer';
 import { CountdownTimer } from '@/components/CountdownTimer';
 
+interface Profile {
+  credits_in_minutes: number;
+}
+
 export default function Session() {
   const { user, loading: authLoading } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [avatarId, setAvatarId] = useState('');
   const [voiceId, setVoiceId] = useState('');
   const [contextId, setContextId] = useState('');
-  const [duration, setDuration] = useState<15 | 30>(15);
+  const [duration, setDuration] = useState(15);
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -28,8 +34,20 @@ export default function Session() {
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
+    } else if (user) {
+      fetchProfile();
     }
   }, [user, authLoading, navigate]);
+
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('user-profile');
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
 
   // Countdown timer effect
   useEffect(() => {
@@ -103,20 +121,23 @@ export default function Session() {
     if (!session) return;
 
     try {
-      await supabase.functions.invoke('sessions-terminate', {
+      const { data, error } = await supabase.functions.invoke('sessions-terminate', {
         body: { session_id: session.session_id },
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
         },
       });
 
+      if (error) throw error;
+
       toast({
         title: 'Session Ended',
-        description: 'Your session has been terminated',
+        description: `Charged ${data.minutes_used} minute${data.minutes_used !== 1 ? 's' : ''}. ${data.credits_remaining} minutes remaining.`,
       });
 
       setSession(null);
       setIsConnected(false);
+      await fetchProfile();
     } catch (error: any) {
       console.error('Error ending session:', error);
       toast({
@@ -135,15 +156,18 @@ export default function Session() {
     );
   }
 
+  const maxDuration = Math.min(profile?.credits_in_minutes || 0, 120);
+  const durationOptions = Array.from({ length: maxDuration }, (_, i) => i + 1);
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate('/')}>
+          <Button variant="outline" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          <h1 className="text-3xl font-bold">LiveAvatar Session</h1>
+          <h1 className="text-3xl font-bold">ProAvatar Session</h1>
         </div>
 
         {!session ? (
@@ -151,10 +175,47 @@ export default function Session() {
             <CardHeader>
               <CardTitle>Start a New Session</CardTitle>
               <CardDescription>
-                Configure your LiveAvatar session settings
+                {profile ? (
+                  <>You have {profile.credits_in_minutes} minutes available. Select session duration (1-{maxDuration} min).</>
+                ) : (
+                  'Loading...'
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="duration">Session Duration (minutes)</Label>
+                <Select 
+                  value={duration.toString()} 
+                  onValueChange={(v) => setDuration(parseInt(v))}
+                  disabled={!profile || profile.credits_in_minutes < 1}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {durationOptions.map((min) => (
+                      <SelectItem key={min} value={min.toString()}>
+                        {min} minute{min !== 1 ? 's' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="text-sm text-muted-foreground">Quick:</span>
+                  {[5, 10, 15, 30, 60].filter(m => m <= maxDuration).map((min) => (
+                    <Button
+                      key={min}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDuration(min)}
+                    >
+                      {min}m
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="avatarId">Avatar ID *</Label>
                 <Input
@@ -185,27 +246,18 @@ export default function Session() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Session Duration</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant={duration === 15 ? 'default' : 'outline'}
-                    onClick={() => setDuration(15)}
-                  >
-                    15 Minutes
-                  </Button>
-                  <Button
-                    variant={duration === 30 ? 'default' : 'outline'}
-                    onClick={() => setDuration(30)}
-                  >
-                    30 Minutes
-                  </Button>
-                </div>
-              </div>
-
-              <Button onClick={startSession} disabled={loading} className="w-full">
-                {loading ? 'Starting...' : 'Start Session'}
+              <Button 
+                onClick={startSession} 
+                disabled={loading || !profile || profile.credits_in_minutes < duration} 
+                className="w-full"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                {loading ? 'Starting...' : `Start ${duration}-Minute Session`}
               </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Credits are only deducted when your session ends. End early to save unused minutes!
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -233,8 +285,13 @@ export default function Session() {
             </Card>
 
             <Button onClick={endSession} variant="destructive" className="w-full">
-              End Session
+              <StopCircle className="w-4 h-4 mr-2" />
+              End Session Early
             </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              You'll only be charged for time used (minimum 1 minute). Unused time stays in your account.
+            </p>
           </div>
         )}
       </div>
