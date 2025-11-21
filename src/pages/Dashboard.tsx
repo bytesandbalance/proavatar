@@ -5,8 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, LogOut, Play } from 'lucide-react';
+import { Clock, LogOut, Play, Plus } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -21,6 +23,7 @@ export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [minutesToPurchase, setMinutesToPurchase] = useState(15);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -68,6 +71,10 @@ export default function Dashboard() {
     navigate('/auth');
   };
 
+  // Calculate cost based on configurable price per minute (default 1.5 EUR)
+  const pricePerMinute = 1.5;
+  const totalCost = (minutesToPurchase * pricePerMinute).toFixed(2);
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -99,60 +106,88 @@ export default function Dashboard() {
           <CardContent>
             <div className="flex items-center gap-2 text-2xl font-bold">
               <Clock className="w-6 h-6" />
-              {profile.credits_in_minutes} minutes
+              {profile.credits_in_minutes} minutes remaining
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>15-Minute Package</CardTitle>
-              <CardDescription>€22.50</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Purchase Minutes</CardTitle>
+            <CardDescription>
+              Buy any amount of minutes at €{pricePerMinute.toFixed(2)} per minute
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="minutes">Number of Minutes</Label>
+              <Input
+                id="minutes"
+                type="number"
+                min="1"
+                value={minutesToPurchase}
+                onChange={(e) => setMinutesToPurchase(Math.max(1, parseInt(e.target.value) || 1))}
+                placeholder="Enter minutes"
+              />
               <p className="text-sm text-muted-foreground">
-                Perfect for quick sessions and demos
+                Total cost: €{totalCost}
               </p>
-              <Button className="w-full" variant="outline" asChild>
-                <a href="https://your-payment-provider.com/15min" target="_blank" rel="noopener noreferrer">
-                  Purchase 15 Minutes
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>30-Minute Package</CardTitle>
-              <CardDescription>€45.00</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Best value for extended conversations
-              </p>
-              <Button className="w-full" variant="outline" asChild>
-                <a href="https://your-payment-provider.com/30min" target="_blank" rel="noopener noreferrer">
-                  Purchase 30 Minutes
-                </a>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setMinutesToPurchase(15)}
+              >
+                15 min (€22.50)
               </Button>
-            </CardContent>
-          </Card>
-        </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setMinutesToPurchase(30)}
+              >
+                30 min (€45.00)
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setMinutesToPurchase(60)}
+              >
+                60 min (€90.00)
+              </Button>
+            </div>
+
+            <Button className="w-full" asChild>
+              <a 
+                href={`https://your-payment-provider.com/buy?minutes=${minutesToPurchase}&amount=${totalCost}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Purchase {minutesToPurchase} Minutes
+              </a>
+            </Button>
+
+            <p className="text-xs text-muted-foreground">
+              After payment, your minutes will be added automatically. Minutes never expire and remain in your account until used.
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Start ProAvatar Session</CardTitle>
             <CardDescription>
-              {profile.credits_in_minutes >= 15
-                ? 'You have enough credits to start a session'
-                : 'Purchase credits to start a session'}
+              {profile.credits_in_minutes >= 1
+                ? `You have ${profile.credits_in_minutes} minutes available. Choose any session length up to your balance.`
+                : 'Purchase minutes to start a session'}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button
               onClick={handleStartSession}
-              disabled={profile.credits_in_minutes < 15}
+              disabled={profile.credits_in_minutes < 1}
               className="w-full"
             >
               <Play className="w-4 h-4 mr-2" />
@@ -171,7 +206,7 @@ export default function Dashboard() {
                 {profile.active_sessions.map((session: any) => (
                   <div key={session.id} className="flex justify-between items-center p-3 border rounded">
                     <div>
-                      <p className="font-medium">{session.duration_minutes} minutes</p>
+                      <p className="font-medium">{session.duration_minutes} minutes requested</p>
                       <p className="text-sm text-muted-foreground">
                         Ends: {new Date(session.end_time).toLocaleString()}
                       </p>

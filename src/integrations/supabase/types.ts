@@ -81,6 +81,7 @@ export type Database = {
           duration_minutes: number
           end_time: string
           id: string
+          minutes_used: number | null
           session_token: string | null
           start_time: string | null
           status: string
@@ -94,6 +95,7 @@ export type Database = {
           duration_minutes: number
           end_time: string
           id?: string
+          minutes_used?: number | null
           session_token?: string | null
           start_time?: string | null
           status?: string
@@ -107,6 +109,7 @@ export type Database = {
           duration_minutes?: number
           end_time?: string
           id?: string
+          minutes_used?: number | null
           session_token?: string | null
           start_time?: string | null
           status?: string
@@ -122,6 +125,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
       }
     }
     Views: {

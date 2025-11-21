@@ -33,10 +33,11 @@ serve(async (req) => {
 
     console.log('Starting session for user:', user.id, 'duration:', duration);
 
-    // Validate duration
-    if (![15, 30].includes(Number(duration))) {
+    // Validate duration - any positive integer
+    const durationMinutes = Number(duration);
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
       return new Response(
-        JSON.stringify({ error: 'Invalid duration. Must be 15 or 30 minutes' }),
+        JSON.stringify({ error: 'Invalid duration. Must be a positive integer (minutes)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -48,9 +49,7 @@ serve(async (req) => {
       );
     }
 
-    const durationMinutes = Number(duration);
-
-    // Check user has enough credits
+    // Check user has enough credits (but don't deduct yet)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('credits_in_minutes')
@@ -75,19 +74,7 @@ serve(async (req) => {
       );
     }
 
-    // Deduct credits
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ credits_in_minutes: profile.credits_in_minutes - durationMinutes })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('Failed to deduct credits:', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to deduct credits' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // NOTE: Credits are NOT deducted here - only when session ends
 
     // Start LiveAvatar session
     const LIVEAVATAR_API_KEY = Deno.env.get('LIVEAVATAR_API_KEY');
@@ -117,12 +104,6 @@ serve(async (req) => {
       const errorText = await tokenResponse.text();
       console.error('LiveAvatar token error:', tokenResponse.status, errorText);
 
-      // Refund credits on failure
-      await supabase
-        .from('profiles')
-        .update({ credits_in_minutes: profile.credits_in_minutes })
-        .eq('id', user.id);
-
       return new Response(
         JSON.stringify({ error: `Failed to create LiveAvatar session: ${errorText}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -144,12 +125,6 @@ serve(async (req) => {
     if (!startResponse.ok) {
       const errorText = await startResponse.text();
       console.error('LiveAvatar start error:', startResponse.status, errorText);
-
-      // Refund credits on failure
-      await supabase
-        .from('profiles')
-        .update({ credits_in_minutes: profile.credits_in_minutes })
-        .eq('id', user.id);
 
       return new Response(
         JSON.stringify({ error: `Failed to start LiveAvatar session: ${errorText}` }),

@@ -61,6 +61,22 @@ serve(async (req) => {
       );
     }
 
+    // Calculate minutes used based on elapsed time
+    const startTime = new Date(session.start_time || session.created_at);
+    const now = new Date();
+    const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+    const minutesUsed = Math.max(1, Math.min(
+      Math.ceil(elapsedSeconds / 60),
+      session.duration_minutes
+    ));
+
+    console.log('Session termination:', { 
+      session_id, 
+      elapsedSeconds, 
+      minutesUsed, 
+      requested: session.duration_minutes 
+    });
+
     // Terminate LiveAvatar session
     if (session.session_token) {
       try {
@@ -78,24 +94,63 @@ serve(async (req) => {
       }
     }
 
-    // Update session status
-    const { error: updateError } = await supabase
-      .from('sessions')
-      .update({ status: 'terminated' })
-      .eq('id', session_id);
+    // Get user's current credits
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('credits_in_minutes')
+      .eq('id', user.id)
+      .single();
 
-    if (updateError) {
-      console.error('Failed to update session status:', updateError);
+    if (profileError || !profile) {
+      console.error('Failed to get user profile:', profileError);
       return new Response(
-        JSON.stringify({ error: 'Failed to update session status' }),
+        JSON.stringify({ error: 'Failed to get user profile' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Session terminated successfully');
+    // Deduct minutes from user's credits
+    const newCredits = Math.max(0, profile.credits_in_minutes - minutesUsed);
+    
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ credits_in_minutes: newCredits })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Failed to update credits:', updateError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to update credits' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Update session status and minutes_used
+    const { error: sessionUpdateError } = await supabase
+      .from('sessions')
+      .update({ 
+        status: 'terminated',
+        minutes_used: minutesUsed
+      })
+      .eq('id', session_id);
+
+    if (sessionUpdateError) {
+      console.error('Failed to update session:', sessionUpdateError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to update session' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Session terminated successfully:', { minutesUsed, creditsRemaining: newCredits });
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Session terminated' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Session terminated',
+        minutes_used: minutesUsed,
+        credits_remaining: newCredits
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

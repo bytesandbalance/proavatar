@@ -18,12 +18,15 @@ serve(async (req) => {
 
     console.log('Running session cleanup...');
 
-    // Find all active sessions past their end time
+    // Find all active sessions past their end time + grace period (5 minutes)
+    const gracePeriodMs = 5 * 60 * 1000;
+    const cleanupThreshold = new Date(Date.now() - gracePeriodMs);
+    
     const { data: expiredSessions, error: fetchError } = await supabase
       .from('sessions')
       .select('*')
       .eq('status', 'active')
-      .lt('end_time', new Date().toISOString());
+      .lt('end_time', cleanupThreshold.toISOString());
 
     if (fetchError) {
       console.error('Failed to fetch expired sessions:', fetchError);
@@ -45,35 +48,73 @@ serve(async (req) => {
 
     let terminatedCount = 0;
 
-    // Terminate each expired session
+    // Cleanup each abandoned session
     for (const session of expiredSessions) {
       try {
+        // Calculate minutes used (up to requested duration)
+        const startTime = new Date(session.start_time || session.created_at);
+        const endTime = new Date(session.end_time);
+        const elapsedSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+        const minutesUsed = Math.max(1, Math.min(
+          Math.ceil(elapsedSeconds / 60),
+          session.duration_minutes
+        ));
+
+        console.log(`Cleaning up session ${session.id}:`, { 
+          minutesUsed, 
+          requested: session.duration_minutes 
+        });
+
         // Try to stop LiveAvatar session
         if (session.session_token) {
-          await fetch('https://api.liveavatar.com/v1/sessions/stop', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session.session_token}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          });
+          try {
+            await fetch('https://api.liveavatar.com/v1/sessions/stop', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session.session_token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+            });
+          } catch (error) {
+            console.error(`Failed to stop LiveAvatar for session ${session.id}:`, error);
+          }
         }
 
-        // Update session status
+        // Get user's current credits (using service role key)
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('credits_in_minutes')
+          .eq('id', session.user_id)
+          .single();
+
+        if (profile) {
+          // Deduct minutes from user's credits
+          const newCredits = Math.max(0, profile.credits_in_minutes - minutesUsed);
+          
+          await supabase
+            .from('profiles')
+            .update({ credits_in_minutes: newCredits })
+            .eq('id', session.user_id);
+        }
+
+        // Update session status and minutes_used
         const { error: updateError } = await supabase
           .from('sessions')
-          .update({ status: 'completed' })
+          .update({ 
+            status: 'cleaned',
+            minutes_used: minutesUsed
+          })
           .eq('id', session.id);
 
         if (updateError) {
           console.error(`Failed to update session ${session.id}:`, updateError);
         } else {
           terminatedCount++;
-          console.log(`Terminated session ${session.id}`);
+          console.log(`Cleaned up session ${session.id}: ${minutesUsed} minutes charged`);
         }
       } catch (error) {
-        console.error(`Error terminating session ${session.id}:`, error);
+        console.error(`Error cleaning up session ${session.id}:`, error);
       }
     }
 
