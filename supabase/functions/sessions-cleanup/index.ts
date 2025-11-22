@@ -62,7 +62,8 @@ serve(async (req) => {
 
         console.log(`Cleaning up session ${session.id}:`, { 
           minutesUsed, 
-          requested: session.duration_minutes 
+          requested: session.duration_minutes,
+          note: 'No refund - credits already deducted at session start'
         });
 
         // Try to stop LiveAvatar session
@@ -81,22 +82,8 @@ serve(async (req) => {
           }
         }
 
-        // Get user's current credits (using service role key)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('credits_in_minutes')
-          .eq('id', session.user_id)
-          .single();
-
-        if (profile) {
-          // Deduct minutes from user's credits
-          const newCredits = Math.max(0, profile.credits_in_minutes - minutesUsed);
-          
-          await supabase
-            .from('profiles')
-            .update({ credits_in_minutes: newCredits })
-            .eq('id', session.user_id);
-        }
+        // NO credit deduction here - credits were already deducted at session start
+        // Expired/abandoned sessions get NO refund
 
         // Update session status and minutes_used
         const { error: updateError } = await supabase
