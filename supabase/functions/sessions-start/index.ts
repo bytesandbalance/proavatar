@@ -74,7 +74,21 @@ serve(async (req) => {
       );
     }
 
-    // NOTE: Credits are NOT deducted here - only when session ends
+    // Deduct credits UP-FRONT when session starts
+    const { error: deductError } = await supabase
+      .from('profiles')
+      .update({ credits_in_minutes: profile.credits_in_minutes - durationMinutes })
+      .eq('id', user.id);
+
+    if (deductError) {
+      console.error('Failed to deduct credits:', deductError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to deduct credits' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Credits deducted up-front:', durationMinutes, 'Remaining:', profile.credits_in_minutes - durationMinutes);
 
     // Start LiveAvatar session
     const LIVEAVATAR_API_KEY = Deno.env.get('LIVEAVATAR_API_KEY');

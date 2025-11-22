@@ -70,10 +70,14 @@ serve(async (req) => {
       session.duration_minutes
     ));
 
+    // Calculate refund: unused minutes from what was already deducted
+    const unusedMinutes = session.duration_minutes - minutesUsed;
+
     console.log('Session termination:', { 
       session_id, 
       elapsedSeconds, 
-      minutesUsed, 
+      minutesUsed,
+      unusedMinutes,
       requested: session.duration_minutes 
     });
 
@@ -109,8 +113,8 @@ serve(async (req) => {
       );
     }
 
-    // Deduct minutes from user's credits
-    const newCredits = Math.max(0, profile.credits_in_minutes - minutesUsed);
+    // Refund unused minutes (credits were already deducted at session start)
+    const newCredits = profile.credits_in_minutes + unusedMinutes;
     
     const { error: updateError } = await supabase
       .from('profiles')
@@ -118,12 +122,14 @@ serve(async (req) => {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Failed to update credits:', updateError);
+      console.error('Failed to refund credits:', updateError);
       return new Response(
-        JSON.stringify({ error: 'Failed to update credits' }),
+        JSON.stringify({ error: 'Failed to refund credits' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Refunded unused minutes:', unusedMinutes);
 
     // Update session status and minutes_used
     const { error: sessionUpdateError } = await supabase
@@ -142,13 +148,14 @@ serve(async (req) => {
       );
     }
 
-    console.log('Session terminated successfully:', { minutesUsed, creditsRemaining: newCredits });
+    console.log('Session terminated successfully:', { minutesUsed, unusedMinutes, creditsRemaining: newCredits });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Session terminated',
         minutes_used: minutesUsed,
+        minutes_refunded: unusedMinutes,
         credits_remaining: newCredits
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

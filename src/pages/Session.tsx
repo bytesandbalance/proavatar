@@ -132,7 +132,7 @@ export default function Session() {
 
       toast({
         title: 'Session Ended',
-        description: `Charged ${data.minutes_used} minute${data.minutes_used !== 1 ? 's' : ''}. ${data.credits_remaining} minutes remaining.`,
+        description: `Used ${data.minutes_used} minute${data.minutes_used !== 1 ? 's' : ''}${data.minutes_refunded > 0 ? `, refunded ${data.minutes_refunded}` : ''}. ${data.credits_remaining} minutes remaining.`,
       });
 
       setSession(null);
