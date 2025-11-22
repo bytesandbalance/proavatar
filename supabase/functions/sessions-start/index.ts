@@ -151,15 +151,19 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (sessionError) {
+    if (sessionError || !sessionRecord) {
       console.error('Failed to create session record:', sessionError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to create session record' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('Session started successfully:', session_id);
+    console.log('Session started successfully. DB ID:', sessionRecord.id, 'LiveAvatar ID:', session_id);
 
     return new Response(
       JSON.stringify({
-        session_id: sessionRecord?.id || session_id,
+        session_id: sessionRecord.id,
         liveavatar_session_id: session_id,
         session_token,
         ...sessionData.data,
